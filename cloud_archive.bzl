@@ -185,8 +185,12 @@ def cloud_download(
         bucket_arg = ["--bucket", bucket]
         file_arg = ["--key", file_path]
         file_version_arg = ["--version-id", file_version] if file_version else []
+        # Check if the client it authenticated and fallback to an unsigned request if not.
+        sign_request_arg = []
+        if tool_path != None and repo_ctx.execute([tool_path, "sts", "get-caller-identity"]).return_code != 0:
+            sign_request_arg = ["--no-sign-request"]
         src_url = repo_ctx.path(file_path).basename
-        cmd = [tool_path] + extra_flags + ["s3api", "get-object"] + bucket_arg + file_arg + file_version_arg + [downloaded_file_path]
+        cmd = [tool_path] + extra_flags + ["s3api", "get-object"] + bucket_arg + file_arg + file_version_arg + sign_request_arg + [downloaded_file_path]
     elif provider == "backblaze":
         # NOTE: currently untested, as I don't have a B2 account.
         tool_path = repo_ctx.which("b2")

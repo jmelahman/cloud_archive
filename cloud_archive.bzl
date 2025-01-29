@@ -7,6 +7,7 @@ inside. """
 
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "patch")
 
+_DEFAULT_TIMEOUT = 200  # seconds
 _CLOUD_FILE_BUILD = """\
 package(default_visibility = ["//visibility:public"])
 
@@ -85,7 +86,8 @@ def cloud_file_download(
         profile = "",
         file_version = "",
         downloaded_file_path = "downloaded",
-        executable = False):
+        executable = False,
+        timeout = _DEFAULT_TIMEOUT):
     """ Securely downloads a file from Minio, then places a BUILD file inside. """
     repo_root = repo_ctx.path(".")
     forbidden_files = [
@@ -111,6 +113,7 @@ def cloud_file_download(
         profile,
         file_version,
         "file/" + downloaded_file_path,
+        timeout,
     )
     if executable:
         repo_ctx.execute(["chmod", "+x", "file/" + downloaded_file_path])
@@ -127,7 +130,8 @@ def cloud_archive_download(
         build_file = "",
         build_file_contents = "",
         profile = "",
-        file_version = ""):
+        file_version = "",
+        timeout = _DEFAULT_TIMEOUT):
     """ Securely downloads and unpacks an archive from Minio, then places a
     BUILD file inside. """
     downloaded_file_path = file_path
@@ -148,6 +152,7 @@ def cloud_archive_download(
         profile,
         file_version,
         downloaded_file_path,
+        timeout,
     )
 
     # Extract
@@ -164,7 +169,8 @@ def cloud_download(
         bucket = "",
         profile = "",
         file_version = "",
-        downloaded_file_path = ""):
+        downloaded_file_path = "",
+        timeout = _DEFAULT_TIMEOUT):
     """ Securely downloads a file from Minio. """
     downloaded_file_path = downloaded_file_path or file_path
 
@@ -204,7 +210,7 @@ def cloud_download(
 
     # Download.
     repo_ctx.report_progress("Downloading {}.".format(src_url))
-    result = repo_ctx.execute(cmd, timeout = 1800)
+    result = repo_ctx.execute(cmd, timeout = timeout)
     if result.return_code != 0:
         fail("Failed to download {} from {}: {}".format(src_url, provider.capitalize(), result.stderr))
 
@@ -223,6 +229,7 @@ def _cloud_file_impl(ctx):
         file_version = ctx.attr.file_version if hasattr(ctx.attr, "file_version") else "",
         downloaded_file_path = ctx.attr.downloaded_file_path,
         executable = ctx.attr.executable,
+        timeout = ctx.attr.timeout,
     )
 
 def _cloud_archive_impl(ctx):
@@ -239,6 +246,7 @@ def _cloud_archive_impl(ctx):
         profile = ctx.attr.profile if hasattr(ctx.attr, "profile") else "",
         bucket = ctx.attr.bucket if hasattr(ctx.attr, "bucket") else "",
         file_version = ctx.attr.file_version if hasattr(ctx.attr, "file_version") else "",
+        timeout = ctx.attr.timeout,
     )
 
 minio_file = repository_rule(
@@ -300,6 +308,7 @@ s3_file = repository_rule(
     implementation = _cloud_file_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching file"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",
@@ -318,6 +327,7 @@ s3_archive = repository_rule(
     implementation = _cloud_archive_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching archive"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",
@@ -359,6 +369,7 @@ gs_file = repository_rule(
     implementation = _cloud_file_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Google Storage bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching file"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",
@@ -377,6 +388,7 @@ gs_archive = repository_rule(
     implementation = _cloud_archive_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Google Storage bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching archive"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",
@@ -416,6 +428,7 @@ b2_file = repository_rule(
     implementation = _cloud_file_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Backblaze B2 bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching file"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",
@@ -434,6 +447,7 @@ b2_archive = repository_rule(
     implementation = _cloud_archive_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Backblaze B2 bucket name"),
+        "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching archive"),
         "file_path": attr.string(
             mandatory = True,
             doc = "Relative path to the archive file within the bucket",

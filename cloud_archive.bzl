@@ -180,7 +180,7 @@ def cloud_download(
         src_url = "gs://{}/{}".format(bucket, file_path)
         cmd = [tool_path, "cp", src_url, downloaded_file_path]
     elif provider == "s3":
-        tool_path = repo_ctx.which("aws")
+        tool_path = repo_ctx.path(Label("@awscli//:aws"))
         extra_flags = ["--profile", profile] if profile else []
         bucket_arg = ["--bucket", bucket]
         file_arg = ["--key", file_path]

@@ -83,6 +83,7 @@ def cloud_file_download(
         expected_sha256,
         provider,
         bucket = "",
+        region = "",
         profile = "",
         file_version = "",
         downloaded_file_path = "downloaded",
@@ -110,6 +111,7 @@ def cloud_file_download(
         expected_sha256,
         provider,
         bucket,
+        region,
         profile,
         file_version,
         "file/" + downloaded_file_path,
@@ -124,6 +126,7 @@ def cloud_archive_download(
         expected_sha256,
         provider,
         bucket = "",
+        region = "",
         strip_prefix = "",
         add_prefix = "",
         type = "",
@@ -149,6 +152,7 @@ def cloud_archive_download(
         expected_sha256,
         provider,
         bucket,
+        region,
         profile,
         file_version,
         downloaded_file_path,
@@ -167,6 +171,7 @@ def cloud_download(
         expected_sha256,
         provider,
         bucket = "",
+        region = "",
         profile = "",
         file_version = "",
         downloaded_file_path = "",
@@ -188,6 +193,7 @@ def cloud_download(
     elif provider == "s3":
         tool_path = repo_ctx.path(Label("@awscli//:aws"))
         extra_flags = ["--profile", profile] if profile else []
+        extra_flags = ["--region", region] if region else []
         bucket_arg = ["--bucket", bucket]
         file_arg = ["--key", file_path]
         file_version_arg = ["--version-id", file_version] if file_version else []
@@ -226,6 +232,7 @@ def _cloud_file_impl(ctx):
         provider = ctx.attr._provider,
         profile = ctx.attr.profile if hasattr(ctx.attr, "profile") else "",
         bucket = ctx.attr.bucket if hasattr(ctx.attr, "bucket") else "",
+        region = ctx.attr.region if hasattr(ctx.attr, "region") else "",
         file_version = ctx.attr.file_version if hasattr(ctx.attr, "file_version") else "",
         downloaded_file_path = ctx.attr.downloaded_file_path,
         executable = ctx.attr.executable,
@@ -245,6 +252,7 @@ def _cloud_archive_impl(ctx):
         build_file_contents = ctx.attr.build_file_contents,
         profile = ctx.attr.profile if hasattr(ctx.attr, "profile") else "",
         bucket = ctx.attr.bucket if hasattr(ctx.attr, "bucket") else "",
+        region = ctx.attr.region if hasattr(ctx.attr, "region") else "",
         file_version = ctx.attr.file_version if hasattr(ctx.attr, "file_version") else "",
         timeout = ctx.attr.timeout,
     )
@@ -308,6 +316,7 @@ s3_file = repository_rule(
     implementation = _cloud_file_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Bucket name"),
+        "region": attr.string(default = "", doc = "Region of the bucket"),
         "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching file"),
         "file_path": attr.string(
             mandatory = True,
@@ -327,6 +336,7 @@ s3_archive = repository_rule(
     implementation = _cloud_archive_impl,
     attrs = {
         "bucket": attr.string(mandatory = True, doc = "Bucket name"),
+        "region": attr.string(default = "", doc = "Region of the bucket"),
         "timeout": attr.int(default = _DEFAULT_TIMEOUT, doc = "Timeout fetching archive"),
         "file_path": attr.string(
             mandatory = True,

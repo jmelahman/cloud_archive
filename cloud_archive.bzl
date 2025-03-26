@@ -197,9 +197,12 @@ def cloud_download(
         bucket_arg = ["--bucket", bucket]
         file_arg = ["--key", file_path]
         file_version_arg = ["--version-id", file_version] if file_version else []
-        # Check if the client it authenticated and fallback to an unsigned request if not.
         sign_request_arg = []
-        if tool_path != None and repo_ctx.execute([tool_path, "sts", "get-caller-identity"]).return_code != 0:
+        # Check if the environment variable is set to force no-sign-request.
+        if repo_ctx.os.environ.get("BAZEL_NO_SIGN_REQUEST", "false").lower() == "true":
+            sign_request_arg = ["--no-sign-request"]
+        # Check if the client is authenticated and fallback to an unsigned request if not.
+        elif tool_path != None and repo_ctx.execute([tool_path, "sts", "get-caller-identity"]).return_code != 0:
             sign_request_arg = ["--no-sign-request"]
         src_url = repo_ctx.path(file_path).basename
         cmd = [tool_path] + extra_flags + ["s3api", "get-object"] + bucket_arg + file_arg + file_version_arg + sign_request_arg + [downloaded_file_path]
